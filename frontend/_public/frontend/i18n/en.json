@@ -4,7 +4,9 @@
         "delete.dialog.cancel.button.label": "Cancel",
         "delete.dialog.delete.button.label": "Delete",
         "delete.dialog.title": "Delete document?",
-        "delete.dialog.text.prefix": "Are you sure that you want to delete the document:"
+        "delete.dialog.text.prefix": "Are you sure that you want to delete the document:",
+        "document.dialog.edit.button.label":"Edit",
+        "document.dialog.cancel.button.label":"Cancel"
     },
     "footer.message": "DocCloud prototype",
     "header.brand.label": "DocCloud prototype",
@@ -18,12 +20,14 @@
         },
         "list.page": {
             "add.button.label": "Add",
+            "tree.button.label": "Open folders tree",
             "title": "Documents list"
         },
         "search.results.page.title": "Search Results",
         "view.page": {
             "delete.button.label": "Delete",
             "edit.button.label": "Edit",
+            "editform.button.label": "Edit properties",
             "title": "View document"
         }
     },
@@ -44,7 +48,9 @@
         "messages": {
             "description.maxLength": "Description cannot be longer than 500 characters",
             "title.maxLength": "Title cannot be longer than 100 characters",
-            "title.required": "Title is required"
+            "title.required": "Title is required",
+            "type.maxLength": "Type cannot be longer than 100 characters",
+            "type.required": "Type is required"
         },
         "title": "Title",
         "title.placeholder": "Enter title",

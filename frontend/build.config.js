@@ -22,8 +22,8 @@ module.exports = {
             './bower_components/jquery/dist/jquery.min.js',
             
             './bower_components/momentjs/min/moment.min.js',
-            './bower_components/angular/angular.min.js',
-            './bower_components/angular-i18n/angular-locale_fi-fi.js',
+            './bower_components/angular/angular.js',
+            './bower_components/angular-i18n/angular-locale_ru-ru.js',
             './bower_components/angular-cookies/angular-cookies.min.js',
             './bower_components/angular-moment/angular-moment.min.js',
             './bower_components/angular-resource/angular-resource.min.js',
@@ -39,6 +39,12 @@ module.exports = {
             './bower_components/angular-bootstrap/ui-bootstrap-tpls.min.js',
             './bower_components/angular-growl/build/angular-growl.min.js',
             './bower_components/angular-utils-pagination/dirPagination.js',
+            './bower_components/angular-ui-layout/src/ui-layout.js',
+            './bower_components/tv4/tv4.js',
+            './bower_components/objectpath/lib/ObjectPath.js',
+            
+            './bower_components/angular-schema-form/dist/schema-form.min.js',
+            './bower_components/angular-schema-form/dist/bootstrap-decorator.min.js',
             
             './bower_components/jquery/dist/jquery.ui.widget.js',
             './bower_components/jquery/dist/tmpl.min.js',

@@ -1,0 +1,26 @@
+<div class="modal-header">
+    <h4 class="modal-title">{{todo.title}}</h4>
+</div>
+<div class="modal-body">
+		<div><b>{{todo.type}}</b></div>
+       <div><p>{{todo.description}}</p></div>
+        <div>
+            <p>
+                <small>
+                    {{"todo.creation.time" | translate}}: {{todo.creationTime | amDateFormat:'DD.MM.YYYY HH:mm:ss'}}
+                    {{"todo.modification.time" | translate }}: {{todo.modificationTime | amDateFormat:'DD.MM.YYYY HH:mm:ss'}}
+                </small>
+            </p>
+        </div>
+</div>
+<div class="modal-footer">
+    <button type="button"
+            class="btn btn-success"
+            translate="dialogs.document.dialog.edit.button.label"
+            ng-click="editDocument()"></button>
+    <button type="button"
+        class="btn btn-default"
+        data-dismiss="modal"
+        translate="dialogs.document.dialog.cancel.button.label"
+        ng-click="cancel()"></button>
+</div>

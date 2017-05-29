@@ -61,6 +61,19 @@ angular.module('app.todo.controllers', [])
                         }]
                     }
                 })
+                .state('todo.editform', {
+                    url: 'todo/:todoId/editform',
+                    controller: 'EditFormController',
+                    templateUrl: 'frontend/partials/todo/edit-form.html',
+                    resolve: {
+                        updatedTodo: ['Todos', '$stateParams', function(Todos, $stateParams) {
+                            if ($stateParams.todoId) {
+                                return Todos.get($stateParams.todoId);
+                            }
+                            return null;
+                        }]
+                    }
+                })
                 .state('todo.search', {
                     url: 'todo/search/:searchTerm/page/:pageNumber/size/:pageSize',
                     controller: 'SearchResultController',
@@ -110,6 +123,10 @@ angular.module('app.todo.controllers', [])
             $state.go('todo.add');
         };
         
+        $scope.openTree = function() {
+            $state.go('todo.tree');
+        };
+        
         $scope.pageChanged = function(newPageNumber) {
             $state.go('todo.page',
                 {pageNumber: newPageNumber, pageSize: paginationConfig.pageSize},
@@ -117,14 +134,99 @@ angular.module('app.todo.controllers', [])
             );
         };
     }])
-    .controller('TodoTreeController', ['$scope', '$state', 'searchResults','paginationConfig',
-        function($scope, $state, searchResults, paginationConfig) {
-    	var splitter = $('#MySplitter').height(600).split({
-    	    orientation: 'vertical',
-    	    limit: 10,
-    	    position: '20%' // if there is no percentage it interpret it as pixels
-    		
-    	});
+    .controller('EditTodoController', ['$scope', '$state', 'updatedTodo', 'Todos',
+        function($scope, $state, updatedTodo, Todos) {
+            console.log(updatedTodo);
+            $scope.todo = updatedTodo;
+            $scope.todo.data=JSON.stringify($scope.todo.data);
+            $scope.saveTodo = function() {
+                if ($scope.todoForm.$valid) {
+                    var onSuccess = function(updated) {
+                        $state.go('todo.view', {todoId: updated.id}, { reload: true, inherit: true, notify: true });
+                    };
+                    $scope.todo.data=JSON.parse($scope.todo.data);
+                    Todos.update($scope.todo, onSuccess);
+                }
+            };
+        }])
+    .controller('SearchController', ['$scope', '$state', 'paginationConfig',
+        function ($scope, $state, paginationConfig) {
+
+            var userWritingSearchTerm = false;
+            var minimumSearchTermLength = 3;
+
+            $scope.missingChars = minimumSearchTermLength;
+            $scope.searchTerm = "";
+
+            $scope.searchFieldBlur = function() {
+                userWritingSearchTerm = false;
+            };
+
+            $scope.searchFieldFocus = function() {
+                userWritingSearchTerm = true;
+            };
+
+            $scope.showMissingCharacterText = function() {
+                if (userWritingSearchTerm) {
+                    if ($scope.searchTerm.length < minimumSearchTermLength) {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+
+            $scope.search = function() {
+                if ($scope.searchTerm.length < minimumSearchTermLength) {
+                    $scope.missingChars = minimumSearchTermLength - $scope.searchTerm.length;
+                }
+                else {
+                    $scope.missingChars = 0;
+                    $state.go('todo.search',
+                        {searchTerm: $scope.searchTerm, pageNumber: 1, pageSize: paginationConfig.pageSize},
+                        {reload: true, inherit: true, notify: true}
+                    );
+                }
+            };
+
+        }])
+  .controller('SearchResultController', ['$scope', '$state', 'paginationConfig', 'searchTerm', 'searchResults',
+        function($scope, $state, paginationConfig, searchTerm, searchResults) {
+            console.log('Rendering search results page.');
+            $scope.todos = searchResults.content;
+
+            $scope.pagination = {
+                currentPage: searchResults.number + 1,
+                itemsPerPage: paginationConfig.pageSize,
+                totalItems: searchResults.totalElements
+            };
+
+            $scope.pageChanged = function(newPageNumber) {
+                $state.go('todo.search',
+                    {searchTerm: searchTerm, pageNumber: newPageNumber, pageSize: paginationConfig.pageSize},
+                    {reload: true, inherit: true, notify: true}
+                );
+            };
+        }])
+        
+  .controller('DocumentModalController', ['$scope', '$modalInstance', '$state', 'Todos', 'viewedDoc',
+        function($scope, $modalInstance, $state, Todos, viewedDoc) {
+            $scope.todo = viewedDoc;
+
+            $scope.cancel = function() {
+                $modalInstance.dismiss('cancel');
+            };
+
+            $scope.editDocument = function() {
+                var onSuccess = function() {
+                    $modalInstance.close();
+                   
+                };
+            };
+        }])      
+  .controller('TodoTreeController', ['$scope', '$state', '$modal', 'Todos', 'searchResults','paginationConfig',
+        function($scope, $state, $modal, Todos, searchResults, paginationConfig) {
+
         console.log('Rendering documents tree.');
         var currentDefFormId='';
         var cmis_root= "/jooq/browser/test/root";
@@ -164,18 +266,31 @@ angular.module('app.todo.controllers', [])
 				$scope.loadGrid(data.node.id);
 			  }else{
 				var docid = parseInt(data.node.id);
-				var viewsUrl = '/jooq/api/docs/'+docid;
-				$.getJSON(viewsUrl, function(viewdata) {
-					if (viewdata.type=='view'){
-						currentDefFormId=viewdata.data.defaultForm;
-						$scope.loadGrid('0',viewdata);
-					}else{
-						$state.go('todo.view', {todoId: docid}, { reload: true, inherit: true, notify: true });
-					}
-				});
+				//$state.go('todo.view', {todoId: docid}, { reload: true, inherit: true, notify: true });
+				$scope.openDocument(Todos, docid);
 			  }
 			  
 			});
+	$scope.openDocument = function(Todos, docid){
+		var viewsUrl = '/api/docs/'+docid;
+		$.getJSON(viewsUrl, function(viewdata) {
+	        if (viewdata.type=='view'){
+				$scope.loadGrid('0',viewdata);
+	        }else{
+	        	$scope.todo =  viewdata;
+				$modal.open({
+		            templateUrl: 'frontend/partials/todo/document-view-modal.html',
+		            controller: 'DocumentModalController',
+		            resolve: {
+		                viewedDoc: function () {
+	                            return $scope.todo;
+	                        }
+		            }
+				}); 
+			}
+		});
+		
+	}
 	$scope.loadGrid = function(folderId,viewdata) {
         console.log('Rendering documents grid.');
         
@@ -274,6 +389,52 @@ angular.module('app.todo.controllers', [])
     		viewEntriesUrl +='&size='+rowSize;
     		console.log(viewEntriesUrl);
     	}
+    	var fixGridWidth = function (grid) {
+    	    var gviewScrollWidth = grid[0].parentNode.parentNode.parentNode.scrollWidth;
+    	    var mainWidth = jQuery('#main').width();
+    	    var gridScrollWidth = grid[0].scrollWidth;
+    	    var htable = jQuery('table.ui-jqgrid-htable', grid[0].parentNode.parentNode.parentNode);
+    	    var scrollWidth = gridScrollWidth;
+    	    if (htable.length > 0) {
+    	        var hdivScrollWidth = htable[0].scrollWidth;
+    	        if ((gridScrollWidth < hdivScrollWidth))
+    	            scrollWidth = hdivScrollWidth; // max (gridScrollWidth, hdivScrollWidth)
+    	    }
+    	    if (gviewScrollWidth != scrollWidth || scrollWidth > mainWidth) {
+    	        var newGridWidth = (scrollWidth <= mainWidth)? scrollWidth: mainWidth;  // min (scrollWidth, mainWidth)
+    	        // if the grid has no data, gridScrollWidth can be less then hdiv[0].scrollWidth
+    	        if (newGridWidth != gviewScrollWidth){
+    	            grid.jqGrid("setGridWidth", newGridWidth);
+    	            console.log("Width fixed.")
+    	        }
+    	    }
+    	};
+
+    	var fixGridHeight = function (grid) {
+    	    var gviewNode = grid[0].parentNode.parentNode.parentNode;
+    	    //var gview = grid.parent().parent().parent();
+    	    //var bdiv = jQuery("#gview_" + grid[0].id + " .ui-jqgrid-bdiv");
+    	    var bdiv = jQuery(".ui-jqgrid-bdiv", gviewNode);
+    	    if (bdiv.length) {
+    	        var delta = bdiv[0].scrollHeight - bdiv[0].clientHeight;
+    	        var height = grid.height();
+    	        if (delta !== 0 && height && (height-delta>0)) {
+    	            grid.setGridHeight(height-delta);
+    	            console.log("Height fixed.")
+    	        
+    	        }
+    	    }
+    	};
+
+    	var fixGridSize = function (grid) {
+    	    fixGridWidth(grid);
+    	    fixGridHeight(grid);
+    	};
+    	
+    	$(window).resize(function () {
+    		fixGridSize($('#jqGrid'));
+    	});
+
     	
     	$("#jqGrid").jqGrid({
     		url: viewEntriesUrl,
@@ -282,8 +443,8 @@ angular.module('app.todo.controllers', [])
     		page: 1,
     		colModel: columns,
     		autowidth: true,
-    		shrinkToFit: false,
-    		height:'100%',
+    		shrinkToFit: true,
+    		//height:'100%',
     		maxHeight: 500,
     		rowNum: paginationConfig.pageSize,
     		//guiStyle: "bootstrap",
@@ -330,15 +491,7 @@ angular.module('app.todo.controllers', [])
     				}else{
     					console.log("request doc "+ids);
     					var docid = parseInt(ids);
-    					var viewsUrl = '/jooq/api/docs/'+docid;
-    					$.getJSON(viewsUrl, function(viewdata) {
-    						if (viewdata.type=='view'){
-    							currentDefFormId=viewdata.data.defaultForm;
-    							$scope.loadGrid('0',viewdata);
-    						}else{
-    							$state.go('todo.view', {todoId: docid}, { reload: true, inherit: true, notify: true });
-    						}
-    					});
+    					$scope.openDocument(Todos, docid);
     				}
     			}
     		},
@@ -346,6 +499,7 @@ angular.module('app.todo.controllers', [])
     		emptyrecords: 'Scroll to bottom to retrieve new page', // the message will be displayed at the bottom 
     		pager: "#jqGridPager",
     		loadComplete: function() {
+    			fixGridSize($('#jqGrid'));
     			$("tr.jqgrow", this).contextMenu('folderMenu', {
     				bindings: {
     					'edit': function(trigger) {
@@ -424,79 +578,37 @@ angular.module('app.todo.controllers', [])
                 };
                 Todos.delete($scope.todo, onSuccess);
             };
-        }])
-    .controller('EditTodoController', ['$scope', '$state', 'updatedTodo', 'Todos',
+        }])        
+    .controller('EditFormController', ['$scope', '$state', 'updatedTodo', 'Todos',
         function($scope, $state, updatedTodo, Todos) {
             console.log(updatedTodo);
             $scope.todo = updatedTodo;
-            $scope.todo.data=JSON.stringify($scope.todo.data);
+            var typeUrl="/api/system/s/"+$scope.todo.type;
+            
+            $.ajax
+            ({
+                type: "GET",
+                url: typeUrl,
+                dataType: 'json',
+                async: false,
+                success: function (res) {
+                	$scope.schema = res.data.schema;
+                }
+            })
+            
+            $scope.form = [
+	    	    "*"
+	    	  ];
+	
+            $scope.model = $scope.todo.data;
             $scope.saveTodo = function() {
                 if ($scope.todoForm.$valid) {
                     var onSuccess = function(updated) {
                         $state.go('todo.view', {todoId: updated.id}, { reload: true, inherit: true, notify: true });
                     };
-                    $scope.todo.data=JSON.parse($scope.todo.data);
+                    $scope.todo.data=$scope.model;
                     Todos.update($scope.todo, onSuccess);
                 }
-            };
-        }])
-    .controller('SearchController', ['$scope', '$state', 'paginationConfig',
-        function ($scope, $state, paginationConfig) {
-
-            var userWritingSearchTerm = false;
-            var minimumSearchTermLength = 3;
-
-            $scope.missingChars = minimumSearchTermLength;
-            $scope.searchTerm = "";
-
-            $scope.searchFieldBlur = function() {
-                userWritingSearchTerm = false;
-            };
-
-            $scope.searchFieldFocus = function() {
-                userWritingSearchTerm = true;
-            };
-
-            $scope.showMissingCharacterText = function() {
-                if (userWritingSearchTerm) {
-                    if ($scope.searchTerm.length < minimumSearchTermLength) {
-                        return true;
-                    }
-                }
-
-                return false;
-            };
-
-            $scope.search = function() {
-                if ($scope.searchTerm.length < minimumSearchTermLength) {
-                    $scope.missingChars = minimumSearchTermLength - $scope.searchTerm.length;
-                }
-                else {
-                    $scope.missingChars = 0;
-                    $state.go('todo.search',
-                        {searchTerm: $scope.searchTerm, pageNumber: 1, pageSize: paginationConfig.pageSize},
-                        {reload: true, inherit: true, notify: true}
-                    );
-                }
-            };
-
-        }])
-    .controller('SearchResultController', ['$scope', '$state', 'paginationConfig', 'searchTerm', 'searchResults',
-        function($scope, $state, paginationConfig, searchTerm, searchResults) {
-            console.log('Rendering search results page.');
-            $scope.todos = searchResults.content;
-
-            $scope.pagination = {
-                currentPage: searchResults.number + 1,
-                itemsPerPage: paginationConfig.pageSize,
-                totalItems: searchResults.totalElements
-            };
-
-            $scope.pageChanged = function(newPageNumber) {
-                $state.go('todo.search',
-                    {searchTerm: searchTerm, pageNumber: newPageNumber, pageSize: paginationConfig.pageSize},
-                    {reload: true, inherit: true, notify: true}
-                );
             };
         }])
     .controller('ViewTodoController', ['$scope', '$state', '$modal', 'viewedTodo',
@@ -506,6 +618,10 @@ angular.module('app.todo.controllers', [])
 
             $scope.showEditPage = function() {
                 $state.go("todo.edit", {todoId: $scope.todo.id}, { reload: true, inherit: true, notify: true });
+            };
+            
+            $scope.showEditFormPage = function() {
+                $state.go("todo.editform", {todoId: $scope.todo.id}, { reload: true, inherit: true, notify: true });
             };
 
             $scope.showDeleteDialog = function() {

@@ -9,10 +9,11 @@ var App = angular.module('app', [
     'ui.bootstrap',
     'ui.router',
     'ui.utils',
+    'ui.layout',
     'angular-growl',
     'angularMoment',
     'angularUtils.directives.dirPagination',
-    
+    'schemaForm',
     'angular-jqgrid',
 
     //Partials
@@ -26,6 +27,8 @@ var App = angular.module('app', [
 
     //Todo
     'app.todo.controllers', 'app.todo.services',
+    
+    'app.system.controllers', 'app.system.services',
     
     'app.cmis.services'
 

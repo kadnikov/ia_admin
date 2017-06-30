@@ -11,6 +11,7 @@ module.exports = {
         lib: path.join(targetBase, 'js', 'lib'),
         css: path.join(targetBase, 'css'),
         partials: path.join(targetBase, 'partials'),
+        fonts: path.join(targetBase, 'fonts'),
         assets: targetBase
     },
 

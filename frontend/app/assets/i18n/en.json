@@ -23,6 +23,10 @@
             "tree.button.label": "Open folders tree",
             "title": "Documents list"
         },
+        "searchform.page":{
+        	"title":"Search",
+        	"search.button":"Search"
+        },
         "search.results.page.title": "Search Results",
         "view.page": {
             "delete.button.label": "Delete",

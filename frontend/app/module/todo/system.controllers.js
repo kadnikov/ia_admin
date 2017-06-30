@@ -41,6 +41,32 @@ angular.module('app.system.controllers', [])
                         }]
                     }
                 })
+                .state('system.searchform', {
+                    url: 'system/searchform/:systemId',
+                    controller: 'SearchFormController',
+                    templateUrl: 'frontend/partials/todo/search-form.html',
+                    resolve: {
+                        updatedTodo: ['System', '$stateParams', function(System, $stateParams) {
+                            if ($stateParams.systemId) {
+                                return System.get($stateParams.systemId);
+                            }
+                            return null;
+                        }]
+                    }
+                })
+                .state('system.editform', {
+                    url: 'system/:systemId/editform',
+                    controller: 'EditFormController',
+                    templateUrl: 'frontend/partials/todo/edit-form.html',
+                    resolve: {
+                        updatedTodo: ['System', '$stateParams', function(System, $stateParams) {
+                            if ($stateParams.systemId) {
+                                return System.get($stateParams.systemId);
+                            }
+                            return null;
+                        }]
+                    }
+                })
                 .state('system.view', {
                     url: 'system/:systemId',
                     controller: 'ViewSystemController',
@@ -105,7 +131,132 @@ angular.module('app.system.controllers', [])
                 System.delete($scope.todo, onSuccess);
             };
         }])        
+    .controller('EditFormController', ['$scope', '$state', 'updatedTodo', 'System',
+        function($scope, $state, updatedTodo, System) {
+            console.log(updatedTodo);
+            $scope.todo = updatedTodo;
+           	$scope.schema = {
+           		  "type": "object",
+           		  "title": "schema",
+           		  "properties": {
+           			"symbolicName":{
+           				"type":"string",
+           				"title":"Символьный идентификатор типа"
+           			},
+           			"storage_policy":{
+           				"type":"string",
+           				"title":"Политика хранения"
+           			},
+           		    "properties": {
+           		      "type": "array",
+           		      "items": {
+           		        "type": "object",
+           		        "properties": {
+           		          "name": {
+           		            "title": "Идентификатор атрибута",
+           		            "type": "string"
+           		          },
+           		          "title": {
+           		            "title": "Заголовок атрибута",
+           		            "type": "string"
+           		          },
+           		          "type": {
+           		            "title": "Тип атрибута",
+           		            "type": "string"
+           		          }
+           		        },
+           		        "required": [
+           		          "name",
+           		          "title",
+           		          "type"
+           		        ]
+           		      }
+           		    }
+           		  }
+           		};
+            
+            $scope.form = [
+            	{"key":"symbolicName"},
+            	{"key":"storage_policy"},
+            	{"type": "tabs",
+         		        "tabs": [
+         		          {
+         		            "title": "Атрибуты",
+         		            "items": [
+         		            	{
+		            		    "key": "properties",
+		            		    "type": "tabarray",
+		            		    "add": "Добавить",
+		            		    "remove": "Удалить",
+		            		    "style": {
+		            		      "remove": "btn-danger"
+		            		    },
+		            		    "title": "{{ value.name || 'Tab '+$index }}",
+		            		    "items": [
+		            		      "properties[].name",
+		            		      "properties[].title",
+		            		      "properties[].type"
+		            		    ]
+		            		  }
+         		            ]
+         		          },
+         		          {
+         		        	"title": "Права доступа",
+           		            "items": [ ] 
+         		          }
+         		        ]
+            		}
+            		];
+            var props = $scope.todo.data.schema.properties;
+            var model = $scope.todo.data;
+            model.symbolicName=$scope.todo.symbolicName;
+            model.properties=[];
+            for (var prop in props){
+            	var mprop = {"name":prop,"title":props[prop].title,"type":props[prop].type}
+            	model.properties.push(mprop);
+            }
+            console.log(model);
+            $scope.model = model;
+            $scope.saveTodo = function() {
+                if ($scope.todoForm.$valid) {
+                    var onSuccess = function(updated) {
+                        $state.go('system.view', {systemId: updated.id}, { reload: true, inherit: true, notify: true });
+                    };
+                    var resprops = $scope.model.properties;
+                    var resprop = {}
+                    for (var i = 0; i < resprops.length; i++) {
+                    	resprop[resprops[i].name]={};
+                    	resprop[resprops[i].name].title=resprops[i].title;
+                    	resprop[resprops[i].name].type=resprops[i].type;
+                    }
+                    $scope.todo.data.schema.properties=resprop;
+                    $scope.todo.symbolicName=$scope.model.symbolicName;
+                    console.log($scope.todo);
+                    System.update($scope.todo, onSuccess);
+                }
+            };
+        }])
+        
+    .controller('SearchFormController', ['$scope', '$state', 'updatedTodo', 'System',
+        function($scope, $state, updatedTodo, System) {
+            console.log(updatedTodo);
+            $scope.todo = updatedTodo;
+           	$scope.schema = $scope.todo.data.schema;
+            
+            $scope.form = $scope.todo.data.form;
+            var model = {};
 
+            $scope.model = model;
+            $scope.saveTodo = function() {
+                if ($scope.todoForm.$valid) {
+                    var onSuccess = function(updated) {
+                        $state.go('system.view', {systemId: updated.id}, { reload: true, inherit: true, notify: true });
+                    };
+                    console.log($scope.todo);
+                    //System.update($scope.todo, onSuccess);
+                }
+            };
+        }])
     .controller('EditSystemController', ['$scope', '$state', 'updatedTodo', 'System',
         function($scope, $state, updatedTodo, System) {
             console.log(updatedTodo);
@@ -121,8 +272,8 @@ angular.module('app.system.controllers', [])
                 }
             };
         }])
-    .controller('ViewSystemController', ['$scope', '$state', '$modal', 'viewedTodo',
-        function($scope, $state, $modal, viewedTodo) {
+    .controller('ViewSystemController', ['$scope', '$state', 'viewedTodo',
+        function($scope, $state, viewedTodo) {
             console.log('Rendering view todo entry page.');
             $scope.todo = viewedTodo;
 
@@ -130,16 +281,4 @@ angular.module('app.system.controllers', [])
                 $state.go("system.edit", {systemId: $scope.todo.id}, { reload: true, inherit: true, notify: true });
             };
 
-
-            $scope.showDeleteDialog = function() {
-                $modal.open({
-                    templateUrl: 'frontend/partials/todo/delete-todo-modal.html',
-                    controller: 'DeleteSystemController',
-                    resolve: {
-                        deletedTodo: function () {
-                            return $scope.todo;
-                        }
-                    }
-                });
-            };
         }]);

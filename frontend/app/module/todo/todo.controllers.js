@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('app.todo.controllers', [])
+angular.module('app.todo.controllers', ['ui.bootstrap'])
     .constant('paginationConfig', {
         pageSize: 200
     })
@@ -444,7 +444,7 @@ angular.module('app.todo.controllers', [])
     		colModel: columns,
     		autowidth: true,
     		shrinkToFit: true,
-    		//height:'100%',
+    		height:'100%',
     		maxHeight: 500,
     		rowNum: paginationConfig.pageSize,
     		//guiStyle: "bootstrap",
@@ -625,7 +625,7 @@ angular.module('app.todo.controllers', [])
             };
 
             $scope.showDeleteDialog = function() {
-                $modal.open({
+              $modal.open({
                     templateUrl: 'frontend/partials/todo/delete-todo-modal.html',
                     controller: 'DeleteTodoController',
                     resolve: {

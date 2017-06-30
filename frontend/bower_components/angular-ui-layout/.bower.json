@@ -33,6 +33,6 @@
     "commit": "01d8d1e1a1ff33e1e9db56a4bf08064d0b08ee68"
   },
   "_source": "https://github.com/angular-ui/ui-layout.git",
-  "_target": "1.4.3",
+  "_target": "^1.4.3",
   "_originalSource": "angular-ui-layout"
 }

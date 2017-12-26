@@ -56,7 +56,7 @@ angular.module('app.system.controllers', [])
                 })
                 .state('system.editform', {
                     url: 'system/:systemId/editform',
-                    controller: 'EditFormController',
+                    controller: 'EditSysFormController',
                     templateUrl: 'frontend/partials/todo/edit-form.html',
                     resolve: {
                         updatedTodo: ['System', '$stateParams', function(System, $stateParams) {
@@ -110,7 +110,11 @@ angular.module('app.system.controllers', [])
                     var onSuccess = function(added) {
                         $state.go('system.view', {systemId: added.id}, { reload: true, inherit: true, notify: true });
                     };
-                    $scope.todo.data=JSON.parse($scope.todo.data);
+                    if ($scope.todo.data=="") {
+                    	$scope.todo.data={};
+                    }else{
+                    	$scope.todo.data=JSON.parse($scope.todo.data);
+                    }
                     System.save($scope.todo, onSuccess);
                 }
             };
@@ -131,21 +135,37 @@ angular.module('app.system.controllers', [])
                 System.delete($scope.todo, onSuccess);
             };
         }])        
-    .controller('EditFormController', ['$scope', '$state', 'updatedTodo', 'System',
+    .controller('EditSysFormController', ['$scope', '$state', 'updatedTodo', 'System',
         function($scope, $state, updatedTodo, System) {
             console.log(updatedTodo);
             $scope.todo = updatedTodo;
+            if (updatedTodo.type=='type'){
            	$scope.schema = {
            		  "type": "object",
            		  "title": "schema",
+     		       "required": [
+     		    	   "symbolicName",
+     		    	   "storage_policy"
+     		    	   ],
            		  "properties": {
            			"symbolicName":{
            				"type":"string",
            				"title":"Символьный идентификатор типа"
            			},
            			"storage_policy":{
+           				"title":"Политика хранения",
+           				"type": "string"
+           			},
+           			"parent":{
            				"type":"string",
-           				"title":"Политика хранения"
+           				"title":"Родительский тип"
+           			},
+           			"access":{
+           				"type":"array",
+           				"items":{
+           					"type":"string"
+           				},
+           				"title":"Доступ по-умолчанию для документа"
            			},
            		    "properties": {
            		      "type": "array",
@@ -162,22 +182,48 @@ angular.module('app.system.controllers', [])
            		          },
            		          "type": {
            		            "title": "Тип атрибута",
-           		            "type": "string"
+           		            "type": "string",
+           		            "enum": ["string","number"]
            		          }
            		        },
            		        "required": [
            		          "name",
            		          "title",
-           		          "type"
+           		          "type"          		          
            		        ]
            		      }
            		    }
            		  }
            		};
-            
+           	var groups = [];
+           	$.ajax
+            ({
+                type: "GET",
+                url: "/jooq/api/system/groups",
+                dataType: 'json',
+                async: false,
+                success: function (res) {
+                	for(var bb = 0; bb < res.length; bb++){
+                		console.log(res[bb]);
+                		var group = {};
+                		group.value=res[bb].id;
+                		group.name=res[bb].title;
+                		groups.push(group);
+                	}
+                }
+            })
+            console.log(groups);
             $scope.form = [
             	{"key":"symbolicName"},
-            	{"key":"storage_policy"},
+            	{
+            		"key":"storage_policy",
+            		"type": "select",
+   		            "titleMap": [
+   		            	{ "value": "fs_policy", "name": "Файловая система" },
+   		            	{ "value": "s3_local_policy", "name": "Scality" }
+   		            	]
+            	},
+            	{"key":"parent"},
             	{"type": "tabs",
          		        "tabs": [
          		          {
@@ -202,14 +248,22 @@ angular.module('app.system.controllers', [])
          		          },
          		          {
          		        	"title": "Права доступа",
-           		            "items": [ ] 
+           		            "items": [ 
+           		            	{
+           		            	    key: "access",
+           		            	    type: "checkboxes",
+           		            	    titleMap: groups
+           		            	  }
+           		            ] 
          		          }
          		        ]
             		}
             		];
+            
             var props = $scope.todo.data.schema.properties;
             var model = $scope.todo.data;
             model.symbolicName=$scope.todo.symbolicName;
+            model.parent=$scope.todo.parent;
             model.properties=[];
             for (var prop in props){
             	var mprop = {"name":prop,"title":props[prop].title,"type":props[prop].type}
@@ -217,20 +271,49 @@ angular.module('app.system.controllers', [])
             }
             console.log(model);
             $scope.model = model;
+            
+            }else{ //NOT TYPE
+            	var typeUrl="/jooq/api/system/s/"+$scope.todo.type;
+            	$.ajax
+                ({
+                    type: "GET",
+                    url: typeUrl,
+                    dataType: 'json',
+                    async: false,
+                    success: function (res) {
+                    	$scope.schema = res.data.schema;
+                    }
+                })
+                
+                $scope.form = [
+    	    	    "*"
+    	    	  ];
+            	console.log('$scope.schema ----------------');
+            	console.log($scope.schema);
+                $scope.model = $scope.todo.data;
+            }
             $scope.saveTodo = function() {
                 if ($scope.todoForm.$valid) {
                     var onSuccess = function(updated) {
                         $state.go('system.view', {systemId: updated.id}, { reload: true, inherit: true, notify: true });
                     };
-                    var resprops = $scope.model.properties;
-                    var resprop = {}
-                    for (var i = 0; i < resprops.length; i++) {
-                    	resprop[resprops[i].name]={};
-                    	resprop[resprops[i].name].title=resprops[i].title;
-                    	resprop[resprops[i].name].type=resprops[i].type;
+                    if (updatedTodo.type=='type'){
+	                    var resprops = $scope.model.properties;
+	                    var resprop = {}
+	                    for (var i = 0; i < resprops.length; i++) {
+	                    	resprop[resprops[i].name]={};
+	                    	resprop[resprops[i].name].title=resprops[i].title;
+	                    	resprop[resprops[i].name].type=resprops[i].type;
+	                    }
+	                    $scope.todo.data.schema.properties=resprop;
+	                    $scope.todo.data.schema.type="object";
+	                    $scope.todo.symbolicName=$scope.model.symbolicName;
+	                    $scope.todo.parent=$scope.model.parent;
+                    }else{
+                    	$scope.todo.data=$scope.model;
+                    	if($scope.model.symbolicName) $scope.todo.symbolicName=$scope.model.symbolicName;
+	                    if($scope.model.parent) $scope.todo.parent=$scope.model.parent;
                     }
-                    $scope.todo.data.schema.properties=resprop;
-                    $scope.todo.symbolicName=$scope.model.symbolicName;
                     console.log($scope.todo);
                     System.update($scope.todo, onSuccess);
                 }
@@ -279,6 +362,10 @@ angular.module('app.system.controllers', [])
 
             $scope.showEditPage = function() {
                 $state.go("system.edit", {systemId: $scope.todo.id}, { reload: true, inherit: true, notify: true });
+            };
+            
+            $scope.showEditFormPage = function() {
+                $state.go("system.editform", {systemId: $scope.todo.id}, { reload: true, inherit: true, notify: true });
             };
 
         }]);

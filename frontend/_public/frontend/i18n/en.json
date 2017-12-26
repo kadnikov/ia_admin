@@ -6,6 +6,11 @@
         "delete.dialog.title": "Delete document?",
         "delete.dialog.text.prefix": "Are you sure that you want to delete the document:",
         "document.dialog.edit.button.label":"Edit",
+        "document.dialog.editform.button.label": "Edit properties",
+        "document.dialog.title": "Create document",
+        "document.dialog.save.button.label": "Create",
+        "folder.dialog.title": "Create folder",
+        "folder.dialog.save.button.label": "Create",
         "document.dialog.cancel.button.label":"Cancel"
     },
     "footer.message": "DocCloud prototype",
@@ -26,6 +31,11 @@
         "searchform.page":{
         	"title":"Search",
         	"search.button":"Search"
+        },
+        "tree.page":{
+        	"create.type.button.label":"Create type",
+        	"create.document.button.label":"Create document",
+        	"create.folder.button.label":"Create folder"
         },
         "search.results.page.title": "Search Results",
         "view.page": {

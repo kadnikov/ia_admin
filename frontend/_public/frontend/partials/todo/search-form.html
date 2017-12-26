@@ -1,18 +1,4 @@
-<div>
-    <h1 translate="pages.searchform.page.title"></h1>
-
-    <div class="well well-lg">
-        <form ng-show="todo" name="todoForm" role="form" >
-	    <div class="form-group">
-	        <h2>{{todo.title}}</h2>
-	    </div>
-	    
-	    <div sf-schema="schema" sf-form="form" sf-model="model"></div>
-	    <div class="form-group">
-        <button type="button"
-                class="btn btn-primary"
-                translate="pages.searchform.page.search.button"
-                ng-disabled="todoForm.$invalid || !todoForm.$dirty"
+<div><h1 translate="pages.searchform.page.title"></h1><div class="well well-lg"><form ng-show="todo" name="todoForm" role="form"><div class="form-group"><h2>{{todo.title}}</h2></div><div sf-schema="schema" sf-form="form" sf-model="model"></div><div class="form-group"><button type="button" class="btn btn-primary" translate="pages.searchform.page.search.button" ng-disabled="todoForm.$invalid || !todoForm.$dirty" ng-click="saveTodo()"></button></div></form></div></div>          ng-disabled="todoForm.$invalid || !todoForm.$dirty"
                 ng-click="saveTodo()"></button>
     	</div>
     	</form>

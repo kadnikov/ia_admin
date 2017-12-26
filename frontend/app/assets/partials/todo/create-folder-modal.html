@@ -1,0 +1,37 @@
+<div class="modal-header">
+    <h4 class="modal-title" translate="dialogs.folder.dialog.title"></h4>
+</div>
+<div class="modal-body">
+<form ng-show="todo" name="todoForm" role="form" >
+    <div class="form-group">
+        <label for="title" translate="todo.title"></label>:
+        <input id="title"
+               class="form-control"
+               name="title"
+               type="text"
+               placeholder="{{'todo.title.placeholder' | translate}}"
+               ng-model="todo.title"
+               required
+               ng-maxlength="100"/>
+        <div class="ng-error" ng-show="todoForm.title.$dirty && todoForm.title.$invalid">
+            <small class="ng-error"
+                   translate="todo.messages.title.required"
+                   ng-show="todoForm.title.$error.required"></small>
+            <small class="ng-error"
+                   translate="todo.messages.title.maxLength"
+                   ng-show="todoForm.title.$error.maxlength"></small>
+        </div>
+    </div>
+</form>
+</div>
+<div class="modal-footer">
+    <button type="button"
+            class="btn btn-success"
+            translate="dialogs.folder.dialog.save.button.label"
+            ng-click="saveFolder()"></button>
+    <button type="button"
+        class="btn btn-default"
+        data-dismiss="modal"
+        translate="dialogs.document.dialog.cancel.button.label"
+        ng-click="cancel()"></button>
+</div>

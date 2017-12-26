@@ -63,7 +63,7 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
                 })
                 .state('todo.editform', {
                     url: 'todo/:todoId/editform',
-                    controller: 'EditFormController',
+                    controller: 'EditDocFormController',
                     templateUrl: 'frontend/partials/todo/edit-form.html',
                     resolve: {
                         updatedTodo: ['Todos', '$stateParams', function(Todos, $stateParams) {
@@ -208,7 +208,98 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
                 );
             };
         }])
-        
+    .controller('CreateDocumentModalController', ['$scope', '$modalInstance', '$state', 'Todos', 'cmisUrl', 'loadGrid', 'currentFolderId',
+        function($scope, $modalInstance, $state, Todos, cmisUrl, loadGrid, currentFolderId) {
+    		$scope.todo={}
+            $scope.form = {};
+    		
+            $scope.cancel = function() {
+                $modalInstance.dismiss('cancel');
+            };
+
+            $scope.saveDocument = function() {
+            	
+            	if ($scope.form.document.$valid) {
+                    var onSuccess = function(added) {
+                    	$modalInstance.close();
+                    	var resJson = {};
+                    	
+                    	resJson['cmisaction']= 'move';
+                    	resJson['targetFolderId']= currentFolderId;
+                    	resJson['succinct']= 'true';
+	                    $.ajax
+	                        ({
+	                    		headers: { 
+	                    			'Accept': 'application/json, text/plain, */*',
+	                    			'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' 
+	                    		},
+	                            type: "POST",
+	                            url: cmisUrl+"?objectId="+added.id,
+	                            dataType: 'text',
+	                    		contentType: 'application/x-www-form-urlencoded',
+	                            async: false,
+	                            data: $.param(resJson),
+	                            success: function (res) {
+	                    			console.log("Saved! - "+res); 
+	                    			loadGrid(currentFolderId);
+	                    			var url = $state.href("todo.editform", {todoId: added.id});
+	                            	window.open(url,'_blank');
+	                    		},
+	                    		error: function (res) {
+	                    			console.log("ERROR");
+	                    			console.log(res);
+	                    		}
+	                        })
+                    };
+                    $scope.todo.data={};
+                    Todos.save($scope.todo, onSuccess);
+                }
+            };
+        }])           
+    .controller('CreateFolderModalController', ['$scope', '$modalInstance', '$state', 'Todos', 'cmisUrl', 'loadGrid', 'currentFolderId',
+        function($scope, $modalInstance, $state, Todos, cmisUrl, loadGrid, currentFolderId) {
+    		$scope.todo={}
+            $scope.cancel = function() {
+                $modalInstance.dismiss('cancel');
+            };
+
+            $scope.saveFolder = function() {
+            	console.log("$scope.todoForm - "+$scope.todo.title);
+                
+                	var resJson = {};
+                	
+                	resJson['cmisaction']= 'createFolder';
+                	resJson['propertyId[0]']= 'cmis:name';
+                	resJson['propertyValue[0]']= $scope.todo.title;
+                	resJson['propertyId[1]']= 'cmis:objectTypeId';
+                	resJson['propertyValue[1]']= 'folder';
+                	resJson['succinct']= 'true';
+                $.ajax
+                    ({
+                		headers: { 
+                			'Accept': 'application/json, text/plain, */*',
+                			'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' 
+                		},
+                        type: "POST",
+                        url: cmisUrl+"?objectId="+currentFolderId,
+                        dataType: 'text',
+                		contentType: 'application/x-www-form-urlencoded',
+                        async: false,
+                        data: $.param(resJson),
+                        success: function (res) {
+                			console.log("Saved! - "+res); 
+                			loadGrid(currentFolderId);
+                			$modalInstance.close();
+                			
+                        },
+                		error: function (res) {
+                			console.log("ERROR");
+                			console.log(res);
+                		}
+                    })
+                
+            };
+        }])           
   .controller('DocumentModalController', ['$scope', '$modalInstance', '$state', 'Todos', 'viewedDoc',
         function($scope, $modalInstance, $state, Todos, viewedDoc) {
             $scope.todo = viewedDoc;
@@ -218,34 +309,39 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
             };
 
             $scope.editDocument = function() {
-                var onSuccess = function() {
-                    $modalInstance.close();
-                   
-                };
+            	var url = $state.href("todo.edit", {todoId: $scope.todo.id});
+            	window.open(url,'_blank');
             };
+            
+            $scope.editDocumentProps = function() {
+            	var url = $state.href("todo.editform", {todoId: $scope.todo.id});
+            	window.open(url,'_blank');
+            	
+            };
+
         }])      
   .controller('TodoTreeController', ['$scope', '$state', '$modal', 'Todos', 'searchResults','paginationConfig',
         function($scope, $state, $modal, Todos, searchResults, paginationConfig) {
 
         console.log('Rendering documents tree.');
         var currentDefFormId='';
-        var cmis_root= "/jooq/browser/test/root";
+        $scope.cmis_root= "/jooq/browser/test/root";
 		    $('#treecontainer').jstree({
 		    'core' : {
 		      'data' : {
 		        "url" : function (node) {
 					  return node.id === '#' ?
-						cmis_root+"?objectId=0&cmisselector=children" :
-						cmis_root+"?objectId="+node.id+"&cmisselector=children";
+						$scope.cmis_root+"?objectId=0&cmisselector=children" :
+						$scope.cmis_root+"?objectId="+node.id+"&cmisselector=children";
 					},
 				"dataFilter" : function (data) {
 					var nodes = [];
 					$.each(JSON.parse(data).objects, function(i,item){
 						var node = {};
 						node.id= item.object.properties["cmis:objectId"].value;
-						node.data = {"type": item.object.properties["cmis:objectTypeId"].value};
+						node.data = {"type": item.object.properties["cmis:objectTypeId"].value, "baseType": item.object.properties["cmis:baseTypeId"].value};
 						node.text=item.object.properties["cmis:name"].value;
-						if (item.object.properties["cmis:objectTypeId"].value=="cmis:folder"){node.children=true}
+						if (item.object.properties["cmis:baseTypeId"].value=="cmis:folder"){node.children=true}
 						nodes.push(node);
 					});
 						
@@ -262,7 +358,7 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
 		  //$("#treecontainer").jstree('create_node', '#', {'id' : '0', 'text' : 'Root folder'}, 'last');
 		  $('#treecontainer').on("select_node.jstree", function (e, data) {
 			  console.log("node_id: "+ data.node.type + " - " + data.node.id); 
-			  if (data.node.data.type=="cmis:folder"){
+			  if (data.node.data.baseType=="cmis:folder"){
 				$scope.loadGrid(data.node.id);
 			  }else{
 				var docid = parseInt(data.node.id);
@@ -271,8 +367,77 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
 			  }
 			  
 			});
+		  
+		  $scope.createDocument = function() {
+			console.log($scope.currentFolderId)
+			$modal.open({
+	            templateUrl: 'frontend/partials/todo/create-doc-modal.html',
+	            controller: 'CreateDocumentModalController',
+	            resolve: {
+	                cmisUrl: function () {
+                            return $scope.cmis_root;
+                        },
+                    loadGrid: function () {
+                            return $scope.loadGrid;
+                        },
+                    currentFolderId: function () {
+                            return $scope.currentFolderId;
+                        }
+	            }
+	            
+			}); 
+          };
+          
+		  $scope.createFolder = function() {
+			  console.log($scope.currentFolderId)
+			  $modal.open({
+		            templateUrl: 'frontend/partials/todo/create-folder-modal.html',
+		            controller: 'CreateFolderModalController',
+		            resolve: {
+		                cmisUrl: function () {
+	                            return $scope.cmis_root;
+	                        },
+	                    loadGrid: function () {
+	                            return $scope.loadGrid;
+	                        },
+	                    currentFolderId: function () {
+	                            return $scope.currentFolderId;
+	                        }
+		            }
+		            
+				}); 
+	      };
+	      
+	      $scope.createType = function() {
+	    	  var postJson = {};
+	    	  postJson.title = "Новый тип";
+	    	  postJson.type = "type";
+	    	  postJson.parent = "0";
+	    	  postJson.data = {"storage_policy":"fs_policy","access":["admins"],"schema":{"type":"object","properties":{"Att1":{"type":"string","title":"Атрибут 1"}}}};
+	    	  $.ajax
+              ({	headers: { 
+					'Accept': 'application/json, text/plain, */*',
+					'Content-Type': 'application/json;charset=utf-8' 
+				},
+                  type: "POST",
+                  url: '/jooq/api/system',
+                  datatype: "json",
+                  async: false,
+                  data: JSON.stringify(postJson),
+                  success: function (res) {
+          			console.log("Saved! - "+res);
+          			var url = $state.href("system.editform", {systemId: res.id});
+                  	window.open(url,'_blank');
+          		},
+          		error: function (res) {
+          			console.log("ERROR");
+          			console.log(res);
+          		}
+              })
+	      };
+          
 	$scope.openDocument = function(Todos, docid){
-		var viewsUrl = '/api/docs/'+docid;
+		var viewsUrl = '/jooq/api/docs/'+docid;
 		$.getJSON(viewsUrl, function(viewdata) {
 	        if (viewdata.type=='view'){
 				$scope.loadGrid('0',viewdata);
@@ -293,6 +458,7 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
 	}
 	$scope.loadGrid = function(folderId,viewdata) {
         console.log('Rendering documents grid.');
+        $scope.currentFolderId=folderId;
         
     	$("#jqGrid").jqGrid('GridUnload');
     	var dateOptions= {
@@ -338,13 +504,14 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
     		
     	var id=folderId;
     	
-    	var viewEntriesUrl = cmis_root+'?objectId='+id+'&cmisselector=children';
-    	var sys_fields=['id', 'type', 'title', 'description', 'modifier', 'modificationTime','autor','creationTime'];
+    	var viewEntriesUrl = $scope.cmis_root+'?objectId='+id+'&cmisselector=children';
+    	var sys_fields=['id', 'type', 'title', 'description', 'modifier', 'modificationTime','author','creationTime','parent','symbolicName'];
     	var fields=['id', 'title', 'description', 'modifier', 'modificationTime'];
     	var rowSize=paginationConfig.pageSize;
     	var columns =[
     			{ name: 'id', key: true, width: 75, jsonmap: 'object.properties.cmis:objectId.value'},
     			{ name: 'type', label : "Тип",width: 100, jsonmap: 'object.properties.cmis:objectTypeId.value' },
+    			{ name: 'baseType', label : "Тип",width: 100, jsonmap: 'object.properties.cmis:baseTypeId.value' },
     			{ name: 'title', label : "Заголовок",width: 150, jsonmap: 'object.properties.cmis:name.value' },
     			{ name: 'description', label : "Описание", width: 150, jsonmap: 'object.properties.cmis:description.value' },
     			{ name: 'author', label : "Создал", width: 150, jsonmap: 'object.properties.cmis:createdBy.value' },
@@ -362,7 +529,8 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
     		];
     	console.log(viewdata);
     	if (viewdata!=null){
-    		viewEntriesUrl = viewdata.data.query+'?fields=';
+    		viewEntriesUrl = viewdata.data.query+"?";
+    		$scope.currentFolderId="0";
     		fields=[];
     		columns=[];
     		$.each(viewdata.data.columnDescriptions, function(i,item){
@@ -377,6 +545,7 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
     					fields.push(item.field);
     				}
     				if (item.type=='INTEGER') fieldOps.searchoptions={sopt: ["gt","lt","eq"] };
+    				if (item.type=='STRING') fieldOps.searchoptions={sopt: ["cn","nc"] };
     				if (item.type=='DATE') {
     					fieldOps.sorttype='date';
     					fieldOps.searchoptions=dateOptions;
@@ -385,8 +554,11 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
     			}
     		});
     		console.log(columns);
-    		viewEntriesUrl +=fields.join();
-    		viewEntriesUrl +='&size='+rowSize;
+    		if (fields.length>0){
+	    		viewEntriesUrl +='fields=';
+	    		viewEntriesUrl +=fields.join() +"&";
+    		}
+    		viewEntriesUrl +='size='+rowSize;
     		console.log(viewEntriesUrl);
     	}
     	var fixGridWidth = function (grid) {
@@ -486,8 +658,13 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
     			}else{
     				var rowData = $("#jqGrid").getRowData(ids);
     				console.log("Type: "+rowData['type'])
-    				if (rowData['type']=="cmis:folder"){
+    				if (rowData['baseType']=="cmis:folder"){
     					$scope.loadGrid(ids);
+    				}else if (rowData['type']=="type"){
+    					var docid = parseInt(ids);
+    					var url = $state.href("system.editform", {systemId: docid});
+    	            	window.open(url,'_blank');
+    					
     				}else{
     					console.log("request doc "+ids);
     					var docid = parseInt(ids);
@@ -552,13 +729,17 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
         function($scope, $state, Todos) {
             console.log('Rendering add todo entry page.');
             $scope.todo = {};
-
+            
             $scope.saveTodo = function() {
                 if ($scope.todoForm.$valid) {
                     var onSuccess = function(added) {
                         $state.go('todo.view', {todoId: added.id}, { reload: true, inherit: true, notify: true });
                     };
-                    $scope.todo.data=JSON.parse($scope.todo.data);
+                    if ($scope.todo.data=="") {
+                    	$scope.todo.data={};
+                    }else{
+                    	$scope.todo.data=JSON.parse($scope.todo.data);
+                    }
                     Todos.save($scope.todo, onSuccess);
                 }
             };
@@ -579,12 +760,35 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
                 Todos.delete($scope.todo, onSuccess);
             };
         }])        
-    .controller('EditFormController', ['$scope', '$state', 'updatedTodo', 'Todos',
+    .controller('EditDocFormController', ['$scope', '$state', 'updatedTodo', 'Todos',
         function($scope, $state, updatedTodo, Todos) {
-            console.log(updatedTodo);
+            console.log("EditForm for document");
             $scope.todo = updatedTodo;
-            var typeUrl="/api/system/s/"+$scope.todo.type;
+            var typeUrl="/jooq/api/system/s/"+$scope.todo.type;
             
+            $scope.getParentTypeSchema = function(typeId) {
+            	var properties = {}
+            	console.log("getParentTypeSchema typeId = "+typeId);
+            	if (typeId!=null && typeId!="0"){
+	            	$.ajax
+	                ({
+	                    type: "GET",
+	                    url: "/jooq/api/system/"+typeId,
+	                    dataType: 'json',
+	                    async: false,
+	                    success: function (res) {
+	                    	properties = res.data.schema.properties;
+	                    	var parentProps = $scope.getParentTypeSchema(res.parent);
+	                    	for (var prop in parentProps){
+	                    		console.log(prop);
+	                    		properties[prop] = parentProps[prop];
+	                    	}
+	                    }
+	                })
+            	}
+            	return properties;
+            	
+            }
             $.ajax
             ({
                 type: "GET",
@@ -593,6 +797,10 @@ angular.module('app.todo.controllers', ['ui.bootstrap'])
                 async: false,
                 success: function (res) {
                 	$scope.schema = res.data.schema;
+                	var parentProps = $scope.getParentTypeSchema(res.parent);
+                	for (var prop in parentProps){
+                		$scope.schema.properties[prop] = parentProps[prop];
+                	}
                 }
             })
             

@@ -22,6 +22,19 @@
          	<div id="treecontainer"></div>
 		</div>
 		<div ui-layout-container style="padding:5px">
+		<button type="button"
+            class="btn btn-default"
+            translate="pages.tree.page.create.folder.button.label"
+            ng-click="createFolder()"></button>
+	    <button type="button"
+            class="btn btn-default"
+            translate="pages.tree.page.create.document.button.label"
+            ng-click="createDocument()"></button>
+        <button type="button"
+            class="btn btn-default"
+            translate="pages.tree.page.create.type.button.label"
+            ng-click="createType()"></button>
+            <br>
 			<table id="jqGrid"></table>
 			<div id="jqGridPager"></div>
 		</div>

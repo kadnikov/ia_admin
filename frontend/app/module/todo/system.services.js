@@ -2,7 +2,7 @@
 
 angular.module('app.system.services', ['ngResource'])
     .factory('System', ['$resource', 'NotificationService', function($resource, NotificationService) {
-        var api = $resource('/api/system/:id', {"id": "@id"}, {
+        var api = $resource('/jooq/api/system/:id', {"id": "@id"}, {
             query:  {method: 'GET', params: {}, isArray: false},
             get:    {method: 'GET'},
             save: {method: 'POST'},
